@@ -170,7 +170,7 @@ public class DetailActivity extends AppCompatActivity {
 
         Retrofit retrofit = new Retrofit.Builder().baseUrl(URL).addConverterFactory(GsonConverterFactory.create()).client(client).build();
         final TrailerInterface trailerInterface = retrofit.create(TrailerInterface.class);
-        final Call<TrailerResults> reviewResponseCall = trailerInterface.getTrailer(movie.getId(), "7eac19859fbd0741e0e038be3466e17b");
+        final Call<TrailerResults> reviewResponseCall = trailerInterface.getTrailer(movie.getId(), "");
         reviewResponseCall.enqueue(new Callback<TrailerResults>() {
             @Override
             public void onResponse(@NonNull Call<TrailerResults> call, @NonNull Response<TrailerResults> response) {
