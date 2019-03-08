@@ -16,6 +16,9 @@ public interface MovieDao {
     @Query("SELECT * FROM FavoriteMovie ORDER BY id ")
     LiveData<List<FavouriteMovie>> getAll();
 
+    @Query("SELECT * FROM FavoriteMovie WHERE title = :title")
+    List<FavouriteMovie> loadAll(String title);
+
     @Insert
     void insert(FavouriteMovie movie);
 

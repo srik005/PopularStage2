@@ -67,6 +67,9 @@ public class RetrofitResult {
         this.releaseDate = releaseDate;
     }
 
+    public RetrofitResult() {
+    }
+
     public Integer getVoteCount() {
         return voteCount;
     }

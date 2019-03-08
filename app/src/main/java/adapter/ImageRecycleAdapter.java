@@ -28,10 +28,10 @@ public class ImageRecycleAdapter extends RecyclerView.Adapter<ImageRecycleAdapte
     public static String BASE_URL = "http://image.tmdb.org/t/p/w185";
     private Movie mMovie;
     private RetrofitResult result;
-    List<Movie> mFavMovie;
+    List<RetrofitResult> mFavMovie;
 
     public ImageRecycleAdapter(List<RetrofitResult> imageUrls, Context context) {
-        this.imageUrls = imageUrls;
+        this.mFavMovie = imageUrls;
         this.context = context;
     }
 

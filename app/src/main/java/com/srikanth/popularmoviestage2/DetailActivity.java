@@ -1,7 +1,5 @@
 package com.srikanth.popularmoviestage2;
 
-import android.arch.lifecycle.Observer;
-import android.arch.lifecycle.ViewModelProviders;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -12,6 +10,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -22,7 +21,6 @@ import adapter.ReviewAdapter;
 import adapter.TrailerAdapter;
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import database.FavViewModel;
 import database.FavouriteMovie;
 import database.MovieDatabase;
 import okhttp3.OkHttpClient;
@@ -62,8 +60,8 @@ public class DetailActivity extends AppCompatActivity {
     Movie movie;
     ImageView favoImageView;
     RetrofitResult movieList;
-    FavViewModel favViewModel;
     FavouriteMovie favouriteMovie;
+    List<FavouriteMovie> favList;
     public static final String URL = "https://api.themoviedb.org/3/";
 
     @Override
@@ -85,7 +83,7 @@ public class DetailActivity extends AppCompatActivity {
         mTxtOverview.setText(overView);
         Log.d("overview", "" + overView);
 
-        String title = movie.getTitle();
+        final String title = movie.getTitle();
         Log.d("title", "" + title);
         mTxtTitle.setText(title);
 
@@ -102,92 +100,62 @@ public class DetailActivity extends AppCompatActivity {
         final String mImageUrl = movie.getPoster_path();
         Picasso.get().load(ImageAdapter.BASE_URL + mImageUrl).placeholder(R.mipmap.ic_launcher).into(mImageView);
         Log.d("imgUrl", "" + movie.getPoster_path());
-        //favViewModel = ViewModelProviders.of(this).get(FavViewModel.class);
-        // getFavorites();
-        favViewModel = ViewModelProviders.of(this).get(FavViewModel.class);
-        favViewModel.getmAllmovies().observe(this, new Observer<List<FavouriteMovie>>() {
+
+        AppExecutors.getInstance().diskIO().execute(new Runnable() {
             @Override
-            public void onChanged(@Nullable List<FavouriteMovie> favouriteMovies) {
-                if (favouriteMovies != null && favouriteMovies.size() > 0) {
-                    ///   favoriteAdapter.setImage(favouriteMovies);
-                }
+            public void run() {
+                favList = movieDatabase.movieDao().loadAll(title);
+                setFavorites(favList != null);
+
             }
         });
-        /*favoImageView.setOnClickListener(new View.OnClickListener() {
+
+        favoImageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                final FavouriteMovie favouriteMovie = new FavouriteMovie();
-                favouriteMovie.setId(movieList.getId());
-                favouriteMovie.setOverview(movieList.getOverview());
-                favouriteMovie.setRelease_date(movieList.getReleaseDate());
-                favouriteMovie.setVote_average(movieList.getVoteAverage());
-                favouriteMovie.setPoster_path(movieList.getPosterPath());
-                favouriteMovie.setTitle(movieList.getTitle());
+                favouriteMovie = new FavouriteMovie();
+                favouriteMovie.setId(movie.getId());
+                favouriteMovie.setPoster_path(movie.getPoster_path());
+                favouriteMovie.setRelease_date(movie.getRelease_date());
+                favouriteMovie.setOverview(movie.getOverview());
+                favouriteMovie.setVote_average(movie.getVote_average());
+                Log.d("inserted items", "" + favouriteMovie.toString());
+
                 AppExecutors.getInstance().diskIO().execute(new Runnable() {
                     @Override
                     public void run() {
+                        final String msg;
                         if (isButtonClicked) {
-                            movieDatabase.movieDao().delete(favouriteMovie);
-                            //favoImageView.setImageResource(R.drawable.t4);
-                            Log.d("Delete Movie", "" + "Movie Removed from the list");
+                            msg = "Removed from favorites";
+                            MovieDatabase.getMovieInstance(DetailActivity.this).movieDao().delete(favouriteMovie);
                         } else {
-                            movieDatabase.movieDao().insert(favouriteMovie);
-                            *//**
-         android.view.ViewRootImpl$CalledFromWrongThreadException: Only the original thread that created a view hierarchy can touch its views.
-         favoImageView.setImageResource(R.drawable.baseline_favorite_white_24dp);
-         dont update UI here
-         *
-         ***//*
-                            Log.d("Insert Movie", "" + "Movie Inserted into the list");
+                            MovieDatabase.getMovieInstance(DetailActivity.this).movieDao().insert(favouriteMovie);
+                            msg = "Insert into favorites";
                         }
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                if (isButtonClicked) {
-                                    favoImageView.setImageResource(R.drawable.t4);
-                                } else
-                                    favoImageView.setImageResource(R.drawable.baseline_favorite_white_24dp);
+                                Toast.makeText(DetailActivity.this, msg, Toast.LENGTH_LONG).show();
                             }
                         });
                     }
                 });
             }
-        });*/
-        favoImageView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (isButtonClicked) {
-                    favouriteMovie = new FavouriteMovie();
-                    favouriteMovie.setId(movie.getId());
-                    favouriteMovie.setPoster_path(movie.getPoster_path());
-                    favouriteMovie.setRelease_date(movie.getRelease_date());
-                    favouriteMovie.setOverview(movie.getOverview());
-                    favouriteMovie.setVote_average(movie.getVote_average());
-                    favViewModel.insert(favouriteMovie);
-                    Log.d("inserted items", "" + favouriteMovie.toString());
-                }/* else {
-                    favViewModel.delete(favouriteMovie);
-                    Log.d("Deleted items", "" + favouriteMovie);
-                }*/
-            }
+
         });
     }
 
-   /* private void getFavorites() {
-        AppExecutors.getInstance().diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                FavouriteMovie favouriteMovie = movieDatabase.movieDao().getMovieId(movie.getId());
-                if (favouriteMovie != null) {
-                    if (isButtonClicked) {
-                        favoImageView.setImageResource(R.drawable.baseline_favorite_white_24dp);
-                    } else {
-                        favoImageView.setImageResource(R.drawable.t4);
-                    }
-                }
-            }
-        });
-    }*/
+    private void setFavorites(boolean favorite) {
+        if(favorite){
+            isButtonClicked=true;
+            favoImageView.setImageResource(R.drawable.button_selected);
+        }
+        else{
+            isButtonClicked=false;
+            favoImageView.setImageResource(R.drawable.button_nott_selected);
+        }
+    }
+
 
     private void getTrailerLinks() {
         HttpLoggingInterceptor httpLoggingInterceptor = new HttpLoggingInterceptor();

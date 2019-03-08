@@ -2,6 +2,7 @@ package com.srikanth.popularmoviestage2;
 
 import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModel;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -53,7 +54,6 @@ public class MainActivity extends AppCompatActivity {
     FavoriteAdapter favoriteAdapter;
     MovieViewModel viewModel;
     ImageRecycleAdapter imageRecycleAdapter;
-    MutableLiveData<List<FavViewModel>> mutableMovieList;
 
     /**
      * Don't declare the receiver in the Manifest for app targeting API 26 & above
@@ -75,16 +75,7 @@ public class MainActivity extends AppCompatActivity {
         mMovieList = new ArrayList<>();
         mFavList = new ArrayList<>();
         checkInternetConnection();
-        FavViewModel movieViewModel = ViewModelProviders.of(this).get(FavViewModel.class);
-        movieViewModel.getmAllmovies().observe(this, new Observer<List<FavouriteMovie>>() {
-            @Override
-            public void onChanged(@Nullable List<FavouriteMovie> favouriteMovies) {
-                if (mutableMovieList == null) {
-                    mutableMovieList = new MutableLiveData<>();
-                    loadMovies();
-                }
-            }
-        });
+        getPosterPath(mSort);
     }
 
     private void loadMovies() {
@@ -148,21 +139,6 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             });
-        } else {
-            mFavList = new ArrayList<>();
-            for (int i = 0; i < mFavList.size(); i++) {
-                RetrofitResult movie = new RetrofitResult(
-                        mFavList.get(i).getVote_average(),
-                        mFavList.get(i).getTitle(),
-                        mFavList.get(i).getPoster_path(),
-                        mFavList.get(i).getOverview(),
-                        mFavList.get(i).getRelease_date()
-                );
-                mMovieList.add(movie);
-            }
-            mGridView.setAdapter(new ImageRecycleAdapter(new ArrayList<RetrofitResult>(), MainActivity.this));
-            if (mMovieList != null)
-                imageRecycleAdapter.setImage(mMovieList);
         }
 
     }
@@ -195,7 +171,27 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case R.id.favorite:
                 mSort = "favorite";
-                getPosterPath(mSort);
+                //  getPosterPath(mSort);
+                MovieViewModel movieViewModel = ViewModelProviders.of(this).get(MovieViewModel.class);
+                movieViewModel.getMovies().observe(this, new Observer<List<FavouriteMovie>>() {
+                    @Override
+                    public void onChanged(@Nullable List<FavouriteMovie> favouriteMovies) {
+
+                        List<RetrofitResult> movies = new ArrayList<>();
+                        if (favouriteMovies != null) {
+                            for (FavouriteMovie favMovie : favouriteMovies) {
+                                RetrofitResult movie = new RetrofitResult();
+                                movie.setId(favMovie.getId());
+                                movie.setOverview(favMovie.getOverview());
+                                movie.setTitle(favMovie.getTitle());
+                                movie.setVoteAverage(favMovie.getVote_average());
+                                movies.add(movie);
+                            }
+                        }
+                        imageRecycleAdapter.setImage(movies);
+                    }
+                });
+
                 break;
         }
         return true;
