@@ -1,8 +1,6 @@
 package com.srikanth.popularmoviestage2;
 
-import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.Observer;
-import android.arch.lifecycle.ViewModel;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -18,7 +16,6 @@ import android.support.constraint.ConstraintLayout;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
@@ -29,14 +26,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import adapter.ImageRecycleAdapter;
-import database.FavViewModel;
 import database.FavoriteAdapter;
 import database.FavouriteMovie;
 import models.MovieViewModel;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit.MovieResponse;
-import retrofit.RetrofitResult;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -50,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private String mSort;
     private BroadcastReceiver broadcastReceiver;
     List<FavouriteMovie> mFavList;
-    List<RetrofitResult> mMovieList;
+    List<Movie> mMovieList;
     FavoriteAdapter favoriteAdapter;
     MovieViewModel viewModel;
     ImageRecycleAdapter imageRecycleAdapter;
@@ -65,21 +60,19 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mGridView = findViewById(R.id.img_grid_view);
         constraintLayout = findViewById(R.id.snackbarView);
-        LinearLayoutManager lm = new GridLayoutManager(this, 2);
-        // lm.setOrientation(LinearLayoutManager.VERTICAL);
-        mGridView.setHasFixedSize(true);
+        mGridView = findViewById(R.id.img_grid_view);
+        GridLayoutManager lm = new GridLayoutManager(MainActivity.this, 2);
         mGridView.setLayoutManager(lm);
-        mSort = "now_playing";
+        mGridView.setHasFixedSize(true);
         mMovieList = new ArrayList<>();
         mFavList = new ArrayList<>();
         checkInternetConnection();
+        mSort = "now_playing";
+        imageRecycleAdapter = new ImageRecycleAdapter(mMovieList, this);
+        mGridView.setAdapter(imageRecycleAdapter);
+        imageRecycleAdapter.notifyDataSetChanged();
         getPosterPath(mSort);
-    }
-
-    private void loadMovies() {
-        Handler mHandler = new Handler();
 
     }
 
@@ -94,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
                         if (networkInfo != null) {
                             NetworkInfo.State state = networkInfo.getState();
                             if (state == NetworkInfo.State.CONNECTED) {
-                                getPosterPath(mSort);
+                                //getPosterPath(mSort);
                                 Log.d("connected internet", "connected internaet");
                                 Snackbar.make(constraintLayout, "Internet is connected", Snackbar.LENGTH_SHORT).show();
                             } else {
@@ -114,32 +107,35 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void getPosterPath(String sort) {
+        mGridView = findViewById(R.id.img_grid_view);
+        GridLayoutManager lm = new GridLayoutManager(MainActivity.this, 2);
+        mGridView.setLayoutManager(lm);
+
         HttpLoggingInterceptor httpLoggingInterceptor = new HttpLoggingInterceptor();
         httpLoggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
         OkHttpClient client = new OkHttpClient.Builder().addInterceptor(httpLoggingInterceptor).build();
-
-        if (mSort.equals("top_rated") || mSort.equals("popular")) {
-            Retrofit retrofit = new Retrofit.Builder().baseUrl(URL).addConverterFactory(GsonConverterFactory.create()).client(client).build();
-            final MovieInterface movieInterface = retrofit.create(MovieInterface.class);
-            final Call<MovieResponse> movieResponseCall = movieInterface.getNowPlaying(sort, "7eac19859fbd0741e0e038be3466e17b");
-            movieResponseCall.enqueue(new Callback<MovieResponse>() {
-                @Override
-                public void onResponse(@NonNull Call<MovieResponse> call, @NonNull Response<MovieResponse> response) {
-                    if (response.body() != null && response.code() == 200) {
-                        List<RetrofitResult> movieResponses = response.body().getResults();
-                        Log.d("Response", "" + response.body());
-                        Log.d("Total number of movies", "" + movieResponses.size());
-                        imageRecycleAdapter = new ImageRecycleAdapter(movieResponses, MainActivity.this);
-                        mGridView.setAdapter(imageRecycleAdapter);
-                    }
+        // if (mSort.equals("top_rated") || mSort.equals("popular")) {
+        Retrofit retrofit = new Retrofit.Builder().baseUrl(URL).addConverterFactory(GsonConverterFactory.create()).client(client).build();
+        final MovieInterface movieInterface = retrofit.create(MovieInterface.class);
+        final Call<MovieResponse> movieResponseCall = movieInterface.getNowPlaying(sort, "");
+        movieResponseCall.enqueue(new Callback<MovieResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<MovieResponse> call, @NonNull Response<MovieResponse> response) {
+                if (response.body() != null && response.code() == 200) {
+                    List<Movie> movieResponses = response.body().getResults();
+                    Log.d("Response", "" + response.body());
+                    Log.d("Total number of movies", "" + movieResponses.size());
+                    //imageRecycleAdapter = new ImageRecycleAdapter(movieResponses, MainActivity.this);
+                    mGridView.setAdapter(new ImageRecycleAdapter(movieResponses, MainActivity.this));
                 }
+            }
 
-                @Override
-                public void onFailure(Call<MovieResponse> call, Throwable t) {
+            @Override
+            public void onFailure(Call<MovieResponse> call, Throwable t) {
 
-                }
-            });
-        }
+            }
+        });
+        //  }
 
     }
 
@@ -170,28 +166,28 @@ public class MainActivity extends AppCompatActivity {
                 getPosterPath(mSort);
                 break;
             case R.id.favorite:
-                mSort = "favorite";
+                Log.d("Inside Favorite","Fav clicked");
+                //mSort = "favorite";
                 //  getPosterPath(mSort);
                 MovieViewModel movieViewModel = ViewModelProviders.of(this).get(MovieViewModel.class);
                 movieViewModel.getMovies().observe(this, new Observer<List<FavouriteMovie>>() {
                     @Override
                     public void onChanged(@Nullable List<FavouriteMovie> favouriteMovies) {
 
-                        List<RetrofitResult> movies = new ArrayList<>();
+                        List<Movie> movies = new ArrayList<>();
                         if (favouriteMovies != null) {
                             for (FavouriteMovie favMovie : favouriteMovies) {
-                                RetrofitResult movie = new RetrofitResult();
+                                Movie movie = new Movie();
                                 movie.setId(favMovie.getId());
                                 movie.setOverview(favMovie.getOverview());
                                 movie.setTitle(favMovie.getTitle());
-                                movie.setVoteAverage(favMovie.getVote_average());
+                                movie.setVote_average(favMovie.getVote_average());
                                 movies.add(movie);
                             }
+                            imageRecycleAdapter.setImage(movies);
                         }
-                        imageRecycleAdapter.setImage(movies);
                     }
                 });
-
                 break;
         }
         return true;

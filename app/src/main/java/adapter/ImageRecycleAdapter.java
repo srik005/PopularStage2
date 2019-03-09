@@ -19,19 +19,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
-import retrofit.RetrofitResult;
 
 public class ImageRecycleAdapter extends RecyclerView.Adapter<ImageRecycleAdapter.ImageViewHolder> {
-    private List<RetrofitResult> imageUrls;
+    private List<Movie> imgUrls;
     private Context context;
     private LayoutInflater layoutInflater;
     public static String BASE_URL = "http://image.tmdb.org/t/p/w185";
     private Movie mMovie;
-    private RetrofitResult result;
-    List<RetrofitResult> mFavMovie;
 
-    public ImageRecycleAdapter(List<RetrofitResult> imageUrls, Context context) {
-        this.mFavMovie = imageUrls;
+    public ImageRecycleAdapter(List<Movie> imageUrls, Context context) {
+        this.imgUrls = imageUrls;
         this.context = context;
     }
 
@@ -44,8 +41,8 @@ public class ImageRecycleAdapter extends RecyclerView.Adapter<ImageRecycleAdapte
 
     @Override
     public void onBindViewHolder(@NonNull ImageRecycleAdapter.ImageViewHolder holder, int position) {
-        final RetrofitResult retrofitResult = imageUrls.get(position);
-        final String urlImage = BASE_URL + retrofitResult.getPosterPath();
+        final Movie retrofitResult = imgUrls.get(position);
+        final String urlImage = BASE_URL + retrofitResult.getPoster_path();
         Log.d("imgUrl", "" + urlImage);
         Picasso.get().load(urlImage).placeholder(R.mipmap.ic_launcher).fit().into(holder.iv);
         holder.iv.setOnClickListener(new View.OnClickListener() {
@@ -54,40 +51,32 @@ public class ImageRecycleAdapter extends RecyclerView.Adapter<ImageRecycleAdapte
                 Intent i = new Intent(context, DetailActivity.class);
                 mMovie = new Movie();
                 mMovie.setId(retrofitResult.getId());
-                mMovie.setPoster_path(retrofitResult.getPosterPath());
+                mMovie.setPoster_path(retrofitResult.getPoster_path());
                 mMovie.setOverview(retrofitResult.getOverview());
                 mMovie.setTitle(retrofitResult.getTitle());
-                mMovie.setVote_average(String.valueOf(retrofitResult.getVoteAverage()));
-                mMovie.setRelease_date(retrofitResult.getReleaseDate());
+                mMovie.setVote_average(String.valueOf(retrofitResult.getVote_average()));
+                mMovie.setRelease_date(retrofitResult.getRelease_date());
                 Log.d("GetId", "" + retrofitResult.getId());
-                Log.d("GetPoster", "" + retrofitResult.getPosterPath());
+                Log.d("GetPoster", "" + retrofitResult.getPoster_path());
                 Log.d("GetOverview", "" + retrofitResult.getOverview());
                 Log.d("GetTitle", "" + retrofitResult.getTitle());
-                Log.d("GetReleaseDate", "" + retrofitResult.getReleaseDate());
+                Log.d("GetReleaseDate", "" + retrofitResult.getRelease_date());
                 i.putExtra("backdrop", mMovie);
                 context.startActivity(i);
             }
         });
     }
 
-    public void setImage(List<RetrofitResult> favMovies) {
-        imageUrls = favMovies;
+    public void setImage(List<Movie> favMovies) {
+        imgUrls = favMovies;
         notifyDataSetChanged();
     }
 
-    public void clearList() {
-        if (imageUrls == null) {
-            imageUrls = new ArrayList<>();
-        } else {
-            imageUrls.clear();
-        }
-    }
 
     @Override
     public int getItemCount() {
-        if (imageUrls == null)
-            return 0;
-        else return imageUrls.size();
+        Log.d("Array Size", "" + imgUrls.size());
+        return imgUrls.size();
     }
 
     public class ImageViewHolder extends RecyclerView.ViewHolder {

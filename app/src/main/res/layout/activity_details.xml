@@ -19,8 +19,8 @@
 
         <ImageView
             android:id="@+id/poster_path"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
             android:layout_gravity="center" />
 
         <LinearLayout

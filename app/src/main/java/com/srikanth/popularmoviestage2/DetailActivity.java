@@ -16,7 +16,6 @@ import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
-import adapter.ImageAdapter;
 import adapter.ReviewAdapter;
 import adapter.TrailerAdapter;
 import butterknife.BindView;
@@ -25,7 +24,6 @@ import database.FavouriteMovie;
 import database.MovieDatabase;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
-import retrofit.RetrofitResult;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -59,7 +57,6 @@ public class DetailActivity extends AppCompatActivity {
     MovieDatabase movieDatabase;
     Movie movie;
     ImageView favoImageView;
-    RetrofitResult movieList;
     FavouriteMovie favouriteMovie;
     List<FavouriteMovie> favList;
     public static final String URL = "https://api.themoviedb.org/3/";
@@ -98,14 +95,14 @@ public class DetailActivity extends AppCompatActivity {
         getReviews();
         getTrailerLinks();
         final String mImageUrl = movie.getPoster_path();
-        Picasso.get().load(ImageAdapter.BASE_URL + mImageUrl).placeholder(R.mipmap.ic_launcher).into(mImageView);
+        Picasso.get().load(MainActivity.URL + mImageUrl).placeholder(R.mipmap.ic_launcher).fit().into(mImageView);
         Log.d("imgUrl", "" + movie.getPoster_path());
 
         AppExecutors.getInstance().diskIO().execute(new Runnable() {
             @Override
             public void run() {
                 favList = movieDatabase.movieDao().loadAll(title);
-                setFavorites(favList != null);
+                setFavorites(favouriteMovie != null);
 
             }
         });
@@ -130,11 +127,12 @@ public class DetailActivity extends AppCompatActivity {
                             MovieDatabase.getMovieInstance(DetailActivity.this).movieDao().delete(favouriteMovie);
                         } else {
                             MovieDatabase.getMovieInstance(DetailActivity.this).movieDao().insert(favouriteMovie);
-                            msg = "Insert into favorites";
+                            msg = "Added to favorites";
                         }
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
+                                setFavorites(!isButtonClicked);
                                 Toast.makeText(DetailActivity.this, msg, Toast.LENGTH_LONG).show();
                             }
                         });
@@ -146,12 +144,11 @@ public class DetailActivity extends AppCompatActivity {
     }
 
     private void setFavorites(boolean favorite) {
-        if(favorite){
-            isButtonClicked=true;
+        if (favorite) {
+            isButtonClicked = true;
             favoImageView.setImageResource(R.drawable.button_selected);
-        }
-        else{
-            isButtonClicked=false;
+        } else {
+            isButtonClicked = false;
             favoImageView.setImageResource(R.drawable.button_nott_selected);
         }
     }
