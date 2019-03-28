@@ -114,10 +114,10 @@ public class MainActivity extends AppCompatActivity {
         HttpLoggingInterceptor httpLoggingInterceptor = new HttpLoggingInterceptor();
         httpLoggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
         OkHttpClient client = new OkHttpClient.Builder().addInterceptor(httpLoggingInterceptor).build();
-        // if (mSort.equals("top_rated") || mSort.equals("popular")) {
+        //if (mSort.equals("top_rated") || mSort.equals("popular")) {
         Retrofit retrofit = new Retrofit.Builder().baseUrl(URL).addConverterFactory(GsonConverterFactory.create()).client(client).build();
         final MovieInterface movieInterface = retrofit.create(MovieInterface.class);
-        final Call<MovieResponse> movieResponseCall = movieInterface.getNowPlaying(sort, "");
+        final Call<MovieResponse> movieResponseCall = movieInterface.getNowPlaying(sort, "7eac19859fbd0741e0e038be3466e17b");
         movieResponseCall.enqueue(new Callback<MovieResponse>() {
             @Override
             public void onResponse(@NonNull Call<MovieResponse> call, @NonNull Response<MovieResponse> response) {
@@ -135,9 +135,8 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-        //  }
-
     }
+
 
     @Override
     protected void onDestroy() {
@@ -166,31 +165,37 @@ public class MainActivity extends AppCompatActivity {
                 getPosterPath(mSort);
                 break;
             case R.id.favorite:
-                Log.d("Inside Favorite","Fav clicked");
-                //mSort = "favorite";
+                Log.d("Inside Favorite", "Fav clicked");
+                //  mSort = "favorite";
+                Toast.makeText(MainActivity.this, "inside favorite", Toast.LENGTH_LONG).show();
                 //  getPosterPath(mSort);
-                MovieViewModel movieViewModel = ViewModelProviders.of(this).get(MovieViewModel.class);
-                movieViewModel.getMovies().observe(this, new Observer<List<FavouriteMovie>>() {
-                    @Override
-                    public void onChanged(@Nullable List<FavouriteMovie> favouriteMovies) {
-
-                        List<Movie> movies = new ArrayList<>();
-                        if (favouriteMovies != null) {
-                            for (FavouriteMovie favMovie : favouriteMovies) {
-                                Movie movie = new Movie();
-                                movie.setId(favMovie.getId());
-                                movie.setOverview(favMovie.getOverview());
-                                movie.setTitle(favMovie.getTitle());
-                                movie.setVote_average(favMovie.getVote_average());
-                                movies.add(movie);
-                            }
-                            imageRecycleAdapter.setImage(movies);
-                        }
-                    }
-                });
+                setUpViewModel();
                 break;
         }
         return true;
+    }
+
+    private void setUpViewModel() {
+        Log.d("View Model", "view model");
+        MovieViewModel movieViewModel = ViewModelProviders.of(this).get(MovieViewModel.class);
+        movieViewModel.getMovies().observe(this, new Observer<List<FavouriteMovie>>() {
+            @Override
+            public void onChanged(@Nullable List<FavouriteMovie> favouriteMovies) {
+
+                List<Movie> movies = new ArrayList<>();
+                if (favouriteMovies != null) {
+                    for (FavouriteMovie favMovie : favouriteMovies) {
+                        Movie movie = new Movie();
+                        movie.setId(favMovie.getId());
+                        movie.setOverview(favMovie.getOverview());
+                        movie.setTitle(favMovie.getTitle());
+                        movie.setVote_average(favMovie.getVote_average());
+                        movies.add(movie);
+                    }
+                    imageRecycleAdapter.setImage(movies);
+                }
+            }
+        });
     }
 
     @Override

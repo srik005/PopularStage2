@@ -20,7 +20,7 @@ public class FavoriteAdapter extends RecyclerView.Adapter<FavoriteAdapter.FavVie
     public static String BASE_URL = "http://image.tmdb.org/t/p/w185";
     LayoutInflater inflater;
     boolean isFav = false;
-    FavViewModel favViewModel;
+
 
     public FavoriteAdapter(Context context) {
         this.inflater = LayoutInflater.from(context);
