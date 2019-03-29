@@ -6,10 +6,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Parcelable;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.constraint.ConstraintLayout;
@@ -17,6 +20,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -38,7 +42,7 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
     private ConstraintLayout constraintLayout;
     private RecyclerView mGridView;
     public static final String URL = "https://api.themoviedb.org/3/";
@@ -46,9 +50,13 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver broadcastReceiver;
     List<FavouriteMovie> mFavList;
     List<Movie> mMovieList;
-    FavoriteAdapter favoriteAdapter;
-    MovieViewModel viewModel;
+    Parcelable savedRecyclerState;
+    public static String RECYCLER_STATE = "listState";
+    public static final String BUNDLE_RECYCLER_LAYOUT = "recycler_layout";
     ImageRecycleAdapter imageRecycleAdapter;
+    private static final String SORT_POPULAR = "popular";
+    private static final String SORT_TOP_RATED = "topRated";
+    private static final String SORT_FAVORITE = "favorite";
 
     /**
      * Don't declare the receiver in the Manifest for app targeting API 26 & above
@@ -62,18 +70,35 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         constraintLayout = findViewById(R.id.snackbarView);
         mGridView = findViewById(R.id.img_grid_view);
-        GridLayoutManager lm = new GridLayoutManager(MainActivity.this, 2);
-        mGridView.setLayoutManager(lm);
-        mGridView.setHasFixedSize(true);
-        mMovieList = new ArrayList<>();
-        mFavList = new ArrayList<>();
-        checkInternetConnection();
-        mSort = "now_playing";
-        imageRecycleAdapter = new ImageRecycleAdapter(mMovieList, this);
-        mGridView.setAdapter(imageRecycleAdapter);
-        imageRecycleAdapter.notifyDataSetChanged();
-        getPosterPath(mSort);
+        GridLayoutManager lm = new GridLayoutManager(MainActivity.this, calculateNoOfColumns(this));
+      /*  if (savedInstanceState != null) {
+            mGridView.setLayoutManager(lm);
+            mMovieList = savedInstanceState.getParcelableArrayList(RECYCLER_STATE);
+            savedRecyclerState = savedInstanceState.getParcelable(BUNDLE_RECYCLER_LAYOUT);
+            mGridView.getLayoutManager().onRestoreInstanceState(savedInstanceState);
+        } else {*/
+            mGridView.setLayoutManager(lm);
+            mGridView.setHasFixedSize(true);
+            mMovieList = new ArrayList<>();
+            mFavList = new ArrayList<>();
+            checkInternetConnection();
+            mSort = "now_playing";
+            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+            // mSort = sharedPreferences.getString(SORT_TOP_RATED, null);
+            Log.d("getVal", "" + mSort);
+            getPosterPath(mSort);
+       // }
 
+    }
+
+    public static int calculateNoOfColumns(Context context) {
+        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+        float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
+        int scalingFactor = 200;
+        int noOfColumns = (int) (dpWidth / scalingFactor);
+        if (noOfColumns < 2)
+            noOfColumns = 2;
+        return noOfColumns;
     }
 
     private void checkInternetConnection() {
@@ -127,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("Total number of movies", "" + movieResponses.size());
                     //imageRecycleAdapter = new ImageRecycleAdapter(movieResponses, MainActivity.this);
                     mGridView.setAdapter(new ImageRecycleAdapter(movieResponses, MainActivity.this));
+                    mGridView.smoothScrollToPosition(0);
                 }
             }
 
@@ -146,6 +172,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // checkSortOrder();
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
@@ -153,22 +185,31 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        SharedPreferences sharedPreferences = getSharedPreferences("MoviePref", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
         switch (item.getItemId()) {
             case R.id.topRated:
                 Toast.makeText(MainActivity.this, "Top Rated", Toast.LENGTH_LONG).show();
                 mSort = "top_rated";
-                getPosterPath(mSort);
+                editor.putString(SORT_TOP_RATED, mSort);
+                editor.apply();
+                getPosterPath(sharedPreferences.getString(SORT_TOP_RATED, null));
                 break;
             case R.id.mostPopular:
                 Toast.makeText(MainActivity.this, "Most Popular", Toast.LENGTH_LONG).show();
                 mSort = "popular";
-                getPosterPath(mSort);
+                editor.putString(SORT_POPULAR, mSort);
+                editor.apply();
+                getPosterPath(sharedPreferences.getString(SORT_POPULAR, null));
                 break;
             case R.id.favorite:
                 Log.d("Inside Favorite", "Fav clicked");
                 //  mSort = "favorite";
                 Toast.makeText(MainActivity.this, "inside favorite", Toast.LENGTH_LONG).show();
                 //  getPosterPath(mSort);
+                editor.putString(SORT_FAVORITE, "favorite");
+                editor.apply();
+                getPosterPath(sharedPreferences.getString(SORT_FAVORITE, null));
                 setUpViewModel();
                 break;
         }
@@ -176,6 +217,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setUpViewModel() {
+        imageRecycleAdapter = new ImageRecycleAdapter(mMovieList, this);
+        mGridView.setAdapter(imageRecycleAdapter);
+        imageRecycleAdapter.notifyDataSetChanged();
         Log.d("View Model", "view model");
         MovieViewModel movieViewModel = ViewModelProviders.of(this).get(MovieViewModel.class);
         movieViewModel.getMovies().observe(this, new Observer<List<FavouriteMovie>>() {
@@ -199,7 +243,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putParcelableArrayList(RECYCLER_STATE, (ArrayList<? extends Parcelable>) mMovieList);
+        outState.putParcelable(BUNDLE_RECYCLER_LAYOUT, mGridView.getLayoutManager().onSaveInstanceState());
     }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        mMovieList = savedInstanceState.getParcelableArrayList(RECYCLER_STATE);
+        savedRecyclerState = savedInstanceState.getParcelable(BUNDLE_RECYCLER_LAYOUT);
+        super.onRestoreInstanceState(savedInstanceState);
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
+        // checkSortOrder();
+
+    }
+
+   /* private void checkSortOrder() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String sortOrder = preferences.getStrin,
+    }*/
 }
